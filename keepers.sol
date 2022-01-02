@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;
 
-// KeeperCompatible.sol imports the functions from both ./KeeperBase.sol and
-// ./interfaces/KeeperCompatibleInterface.sol
 import "@chainlink/contracts/src/v0.7/KeeperCompatible.sol";
 import "./staking.sol";
 
+interface IStagStaking{
+    function rebase() external;
+}
+
 contract KeeeperBridge is KeeperCompatibleInterface {
-    /**
-    * Public stagStakingAddress variable
+    /* Public stagStakingAddress variable
     */
     address public stagStakingAddress;
 
-    /**
-    * Use an interval in seconds and a timestamp to slow execution of Upkeep
+    /* Use an interval in seconds and a timestamp to slow execution of Upkeep
     */
     uint public immutable interval;
     uint public lastTimeStamp;
@@ -25,17 +25,14 @@ contract KeeeperBridge is KeeperCompatibleInterface {
 
     }
 
-    function checkUpkeep(bytes calldata /* checkData */) 
-        external override 
-        returns (
-            bool upkeepNeeded, 
-            bytes memory /* performData */
-        ) {
+     function checkUpkeep(bytes calldata /* checkData */) external override view returns (bool /* upkeepNeeded */, bytes memory /*performData*/) {
         uint32 endTime;
+        bool upkeepNeeded;
         (,,,endTime) = StagStaking(stagStakingAddress).epoch();
         upkeepNeeded = endTime <= block.timestamp;
+        return (upkeepNeeded, bytes(""));
     }
-
+    
     function performUpkeep(bytes calldata /* performData */) external override {
         lastTimeStamp = block.timestamp;
         callRebase();
@@ -44,8 +41,4 @@ contract KeeeperBridge is KeeperCompatibleInterface {
     function callRebase() internal {
         IStagStaking(stagStakingAddress).rebase();
     }
-}
-
-interface IStagStaking{
-    function rebase() external;
 }
