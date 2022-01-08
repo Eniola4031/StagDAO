@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0;
 pragma solidity ^0.8.0;
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
+
 
 contract TimeLockedWallet {
     address public creator;
     address public owner;
     uint256 public unlockDate = 365 days;
     uint256 public createdAt;
+    address public constant presaleToken = "0x68E374F856bF25468D365E539b700b648Bf94B67"; // Using DAI from testnet, replace this with real token address CHANGE THIS
+
     event Received(address _from, uint _amount);
     event Withdrew(address _to, uint _amount);
     event WithdrewTokens(address _tokenContract, address _to, uint _amount);
@@ -28,7 +33,7 @@ contract TimeLockedWallet {
     function info() public view returns(address, address, uint, uint) {
         return (creator, owner, unlockDate, createdAt);
     }
-    
+    //withdraw from contract to msg.sender 
     function withdraw() onlyOwner public {
         require(block.timestamp >= unlockDate);
         payable(msg.sender).transfer(address(this).balance);
@@ -55,4 +60,17 @@ contract TimeLockedWallet {
         uint tokenBalance = token.balanceOf(address(this));
         return tokenBalance;
     }
+         function checkUpkeep(bytes calldata /* checkData */) external override view returns (bool /* upkeepNeeded */, bytes memory /*performData*/) {
+        bool upkeepNeeded;
+        upkeepNeeded = block.timestamp >= unlockDate;
+        return (upkeepNeeded, bytes(""));
+    }
+    
+    function performUpkeep(bytes calldata /* performData */) external override {
+        lastTimeStamp = block.timestamp;
+        withdraw();  
+        withdrawToken(presaleToken);
+          }
+
+
 }
